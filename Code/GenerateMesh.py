@@ -22,15 +22,19 @@ class Triangle:
         # Side lengths
         a = dist(pt_1, pt_2); b = dist(pt_2, pt_3); c = dist(pt_3, pt_1)
         
-        LIM = 1
-        if a < LIM or b < LIM or c < LIM:
+        LIM = 1e-2
+        if a < LIM or b < LIM or c < LIM:# or 2*max(a,b,c) < a+b+c:
             self.valid = False
             return
         
         # Angles (law of cosine)
-        angle1 = acos((a**2 + c**2 - b**2) / (2 * a * c))
-        angle2 = acos((a**2 + b**2 - c**2) / (2 * a * b))
-        angle3 = acos((b**2 + c**2 - a**2) / (2 * b * c))
+        try:
+            angle1 = acos((a**2 + c**2 - b**2) / (2 * a * c))
+            angle2 = acos((a**2 + b**2 - c**2) / (2 * a * b))
+            angle3 = acos((b**2 + c**2 - a**2) / (2 * b * c))
+        except:
+            self.valid = False
+            return
         
         # Circumcircle center point and radius
         den = sin(2*angle1) + sin(2*angle2) + sin(2*angle3)
@@ -41,6 +45,7 @@ class Triangle:
         self.radius2 = dist2(self.center, pt_1)
 
     def contains(self, pt_d: Point) -> bool:
+        if not self.valid: raise RuntimeError(f'{self.points} {self.edges}')
         return dist2(self.center, pt_d) <= self.radius2
 
 
