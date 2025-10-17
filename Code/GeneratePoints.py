@@ -1,10 +1,18 @@
 from random import sample, shuffle, randrange
 from math import sqrt
 
+W = H = 0
+
+def sort(arr: list[int]) -> None:
+    shuffle(arr)
+#     arr.sort(key = lambda item :
+#         sqrt((item[0] - W//2)**2 + (item[1] - H//2)**2) // 50,
+#              reverse=True)
+
 global_pts = []
 
 def generate_pts(BG, mode, num_pts, buffer):
-    
+    global W, H
     W, H = BG.get_size()
     
     match (mode.lower()):
@@ -15,7 +23,7 @@ def generate_pts(BG, mode, num_pts, buffer):
             res = [(x, y)
                     for x in range(0, W, W // step_x)
                     for y in range(0, H, H // step_y)]
-            shuffle(res)
+            sort(res)
             return res
         
         
@@ -27,7 +35,7 @@ def generate_pts(BG, mode, num_pts, buffer):
             res = [(x + randrange(step_x), y + randrange(step_y))
                     for x in range(0, W, step_x)
                     for y in range(0, H, step_y)]
-            shuffle(res)
+            sort(res)
             return res
         
         
@@ -39,21 +47,31 @@ def generate_pts(BG, mode, num_pts, buffer):
                 
                 THRESHOLD = 30
                 
-                for y in range(0, H):
-                    prev = BG.get_at((0, 0))
+                upval = [BG.get_at((x, 0)) for x in range(W)]
+                
+                for y in range(1, H):
+                    prev = BG.get_at((0, y))
                     for x in range(1, W):
                         col = BG.get_at((x, y))
-                        if c_dist(prev, col) >= THRESHOLD:
+                        
+                        lf = c_dist(prev, col)
+                        up = c_dist(upval[x], col)
+                        
+                        if lf >= THRESHOLD:
                             global_pts.append((x, y))
                             prev = col
+                        if up >= THRESHOLD:
+                            global_pts.append((x, y))
+                            upval[x] = col
             
-            res = sample(global_pts, num_pts)
+            res = []
             for i in range(-buffer, W + buffer + 1, W // buffer):
-                res.append((i, 0))
-                res.append((i, H))
+                res.append((i, -buffer))
+                res.append((i, H+buffer))
             for i in range(0, H + 1, H // buffer):
-                res.append((0, i))
-                res.append((W, i))
+                res.append((-buffer, i))
+                res.append((W+buffer, i))
+            res += sample(global_pts, num_pts)
             return res
         
         
