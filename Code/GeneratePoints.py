@@ -1,4 +1,4 @@
-from random import sample, shuffle, randrange
+from random import choices, shuffle, randrange
 from math import sqrt
 
 W = H = 0
@@ -9,7 +9,8 @@ def sort(arr: list[int]) -> None:
 #         sqrt((item[0] - W//2)**2 + (item[1] - H//2)**2) // 50,
 #              reverse=True)
 
-global_pts = []
+dynamic_pts = []
+dynamic_weights = []
 
 def generate_pts(BG, mode, num_pts, buffer):
     global W, H
@@ -18,11 +19,13 @@ def generate_pts(BG, mode, num_pts, buffer):
     match (mode.lower()):
         
         case 'grid':
-            step_x = round(sqrt(num_pts * W / H))
-            step_y = round(num_pts / step_x)
+            pts_x = round(sqrt(num_pts * W / H))
+            step_x = W // pts_x
+            step_y = H // round(num_pts / pts_x)
+            
             res = [(x, y)
-                    for x in range(0, W, W // step_x)
-                    for y in range(0, H, H // step_y)]
+                    for x in range(0, W, step_x)
+                    for y in range(0, H, step_y)]
             sort(res)
             return res
         
@@ -33,19 +36,17 @@ def generate_pts(BG, mode, num_pts, buffer):
             step_y = H // round(num_pts / pts_x)
             
             res = [(x + randrange(step_x), y + randrange(step_y))
-                    for x in range(0, W, step_x)
-                    for y in range(0, H, step_y)]
+                    for x in range(-step_x, W+step_x, step_x)
+                    for y in range(-step_y, H+step_y, step_y)]
             sort(res)
             return res
         
         
         case 'dynamic':
-            if not global_pts:
+            if not dynamic_pts:
                 
                 def c_dist(color1, color2):
                     return sum(abs(a - b) for a, b in zip(color1, color2))
-                
-                THRESHOLD = 30
                 
                 upval = [BG.get_at((x, 0)) for x in range(W)]
                 
@@ -57,21 +58,25 @@ def generate_pts(BG, mode, num_pts, buffer):
                         lf = c_dist(prev, col)
                         up = c_dist(upval[x], col)
                         
-                        if lf >= THRESHOLD:
-                            global_pts.append((x, y))
-                            prev = col
-                        if up >= THRESHOLD:
-                            global_pts.append((x, y))
-                            upval[x] = col
+                        dynamic_pts.append((x, y))
+                        dynamic_weights.append(lf + up)
+                        
+                        prev = upval[x] = col
             
             res = []
-            for i in range(-buffer, W + buffer + 1, W // buffer):
-                res.append((i, -buffer))
-                res.append((i, H+buffer))
-            for i in range(0, H + 1, H // buffer):
-                res.append((-buffer, i))
-                res.append((W+buffer, i))
-            res += sample(global_pts, num_pts)
+            
+            pts_x = round(sqrt(num_pts * W / H))
+            step_x = W // pts_x * 4
+            step_y = H // round(num_pts / pts_x) * 4
+            
+            for x in range(-step_x, W+step_x, step_x):
+                res.append((x, -step_y))
+                res.append((x, H+step_y))
+            for y in range(0, H, step_y):
+                res.append((-step_x, y))
+                res.append((W+step_x, y))
+            
+            res += choices(dynamic_pts, weights=dynamic_weights, k=num_pts)
             return res
         
         
