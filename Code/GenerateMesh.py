@@ -10,7 +10,7 @@ def dist2(pt_1: Point, pt_2: Point) -> float:
     return (pt_1[0] - pt_2[0])**2 + (pt_1[1] - pt_2[1])**2
 
 class Triangle:
-    __slots__ = ('valid', 'points', 'edges', 'center', 'radius2')
+    __slots__ = ('valid', 'points', 'edges', 'center', 'radius')
     
     def __init__(self, pt_1: Point, pt_2: Point, pt_3: Point):
         pt_1, pt_2, pt_3 = sorted([pt_1, pt_2, pt_3])
@@ -42,18 +42,19 @@ class Triangle:
             (pt_1[0]*sin(2*angle1) + pt_2[0]*sin(2*angle2) + pt_3[0]*sin(2*angle3)) / den,
             (pt_1[1]*sin(2*angle1) + pt_2[1]*sin(2*angle2) + pt_3[1]*sin(2*angle3)) / den
             )
-        self.radius2 = dist2(self.center, pt_1)
+        self.radius = dist(self.center, pt_1)
 
-    def contains(self, pt_d: Point) -> bool:
+    def contains(self, pt: Point) -> bool:
         if not self.valid: raise RuntimeError(f'{self.points} {self.edges}')
-        return dist2(self.center, pt_d) <= self.radius2
+        return dist(self.center, pt) <= self.radius
 
 
 ''' ----- Triangulation Algorithm ----- '''
 def bowyer_watson(arr: list[list[int]], dims: list[int]) -> list:
     WIDTH, HEIGHT, BUFFER = dims
 
-    SUPER_TRIANGLE = [(-BUFFER-1, -BUFFER-1), (2 * (WIDTH + BUFFER + 1), -BUFFER-1), (-BUFFER-1, 2 * (HEIGHT + BUFFER + 1))]
+    W, H = WIDTH + 2*BUFFER, HEIGHT + 2*BUFFER
+    SUPER_TRIANGLE = [(W//2, -2*H), (-3*W, 2*H), (3*W, 2*H)]
     
     triangulation = set()
     triangulation.add(Triangle(*SUPER_TRIANGLE))
@@ -69,13 +70,21 @@ def bowyer_watson(arr: list[list[int]], dims: list[int]) -> list:
         
         polygon = [edge for (edge, ct) in bad_edge_ct.items() if ct == 1]
         
-        for triangle in bad_triangles:
-            triangulation.remove(triangle)
+        valid_pt = True
+        new_triangles = []
         
         for edge in polygon: # replace removed triangles
             new_triangle = Triangle(edge[0], edge[1], pt)
-            if new_triangle.valid: # ignore point and line 'triangles'
-                triangulation.add(new_triangle)
+            if not new_triangle.valid:
+                valid_pt = False
+                break
+            new_triangles.append(new_triangle)
+        
+        if valid_pt:
+            for triangle in bad_triangles:
+                triangulation.remove(triangle)
+            triangulation.update(new_triangles)
+    
     outer = []
     for triangle in triangulation:
         if any(pt in SUPER_TRIANGLE for pt in triangle.points):
@@ -90,12 +99,18 @@ def bowyer_watson(arr: list[list[int]], dims: list[int]) -> list:
 def bowyer_watson_slowmo(arr: list[list[int]], dims: list[int]) -> list:
     WIDTH, HEIGHT, BUFFER = dims
 
-    SUPER_TRIANGLE = [(-BUFFER-1, -BUFFER-1), (2 * (WIDTH + BUFFER + 1), -BUFFER-1), (-BUFFER-1, 2 * (HEIGHT + BUFFER + 1))]
+    W, H = WIDTH + 2*BUFFER, HEIGHT + 2*BUFFER
+    SUPER_TRIANGLE = [(W//2, -2*H), (-3*W, 2*H), (3*W, 2*H)]
     
     triangulation = set()
     triangulation.add(Triangle(*SUPER_TRIANGLE))
     
     for pt in arr: # add all the points one at a time to the triangulation
+        #if pt in seen:
+        #    yield []
+        #    continue
+        #seen.add(pt)
+        
         bad_triangles = []
         bad_edge_ct = {}
         for triangle in triangulation: # first find all the triangles that are no longer valid due to the insertion
@@ -105,16 +120,25 @@ def bowyer_watson_slowmo(arr: list[list[int]], dims: list[int]) -> list:
                     bad_edge_ct[edge] = bad_edge_ct.get(edge, 0) + 1
         
         polygon = [edge for (edge, ct) in bad_edge_ct.items() if ct == 1]
-        for triangle in bad_triangles:
-            triangulation.remove(triangle)
         
+        valid_pt = True
         new_triangles = []
+        
         for edge in polygon: # replace removed triangles
             new_triangle = Triangle(edge[0], edge[1], pt)
-            if new_triangle.valid: # ignore point and line 'triangles'
-                new_triangles.append(new_triangle)
-                triangulation.add(new_triangle)
-        yield new_triangles
+            if not new_triangle.valid:
+                valid_pt = False
+                print(f'Bad triangle {new_triangle.points}')
+                break
+            new_triangles.append(new_triangle)
+        
+        if valid_pt:
+            for triangle in bad_triangles:
+                triangulation.remove(triangle)
+            triangulation.update(new_triangles)
+            yield new_triangles
+        else:
+            yield []
     
     outer = []
     for triangle in triangulation:
