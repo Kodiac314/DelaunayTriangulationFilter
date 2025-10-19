@@ -1,4 +1,3 @@
-
 from GeneratePoints import generate_pts
 from GenerateMesh import bowyer_watson, bowyer_watson_slowmo
 from pyautogui import size as pyautogui_size
@@ -9,11 +8,11 @@ pygame.init()
 
 
 ''' ----- SETTINGS ----- '''
-SOURCE_IMG  = 'moose3.jpg' # Upload an image to serve as a background, or leave empty for a color wheel
-QUALITY     = 'SD'            # LD (1/2) | SD (1) | HD (2) | UHD (4)
+SOURCE_IMG  = 'sunset.jpg' # Upload an image to serve as a background
+QUALITY     = 'HD'            # LD (1/2) | SD (1) | HD (2) | UHD (4)
 
 # Advanced settings
-MODE        = 'dynamic'  # Grid | Uniform | Dynamic
+MODE        = 'uniform'  # Grid | Uniform | Dynamic
 BUFFER      = 1          # extra space on border of image
 SHOW_STEPS  = True       # Final result is faster if off, fun to watch if True
 
